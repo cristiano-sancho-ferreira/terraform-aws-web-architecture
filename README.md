@@ -28,7 +28,6 @@ A arquitetura implementada neste projeto segue o diagrama disponível no arquivo
 
 ```
 .
-├── .terraform/                     # Diretório de cache do Terraform (gerado automaticamente)
 ├── modules/                        # Módulos reutilizáveis
 │   ├── app_ec2/                    # Módulo para instâncias EC2
 │   ├── app_ec2_cloudfront/         # Módulo para EC2 com CloudFront
@@ -40,12 +39,8 @@ A arquitetura implementada neste projeto segue o diagrama disponível no arquivo
 ├── _provider.tf                    # Configuração do provider AWS
 ├── _variables.tf                   # Definição de variáveis globais
 ├── main.tf                         # Configuração principal do Terraform
-├── terraform.tfstate               # Arquivo de estado do Terraform
-├── terraform.tfstate.backup        # Backup do arquivo de estado
-├── terraform.tfstate.lock.hcl      # Arquivo de bloqueio de estado
-├── terraform.tfstate.lock.info     # Informações de bloqueio de estado
 ├── Arquitetura.drawio              # Diagrama da arquitetura
-├── Animação.gif                    # Demonstração visual da arquitetura
+├── Arquitetura.gif                 # Demonstração visual da arquitetura
 └── data.tf                         # Definições de datasources
 ```
 
