@@ -27,7 +27,6 @@ A arquitetura implementada neste projeto segue o diagrama disponível no arquivo
 ## Estrutura do Projeto
 
 ```
-.
 ├── modules/                        # Módulos reutilizáveis
 │   ├── app_ec2/                    # Módulo para instâncias EC2
 │   ├── app_ec2_cloudfront/         # Módulo para EC2 com CloudFront

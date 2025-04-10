@@ -52,10 +52,16 @@ resource "aws_security_group" "this" {
 }
 
 
-resource "aws_cloudfront_distribution" "app_ec2" {
+resource "aws_cloudfront_distribution" "app_lb" {
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = "index.html"
+  web_acl_id         = aws_wafv2_web_acl.this.arn
+  aliases            = ["${var.subdomain_name}.${var.domain_name}"]
+
   origin {
-    domain_name = aws_instance.this.public_dns
-    origin_id   = "EC2Origin"
+    domain_name = aws_lb.this.dns_name
+    origin_id   = local.origin_id
 
     custom_origin_config {
       http_port              = 80
@@ -65,17 +71,12 @@ resource "aws_cloudfront_distribution" "app_ec2" {
     }
   }
 
-  # Habilitar o WAF
-  web_acl_id = aws_wafv2_web_acl.this.arn
-
-  enabled             = true
-  is_ipv6_enabled     = true
-  default_root_object = "index.html"
-
   default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "EC2Origin"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = local.origin_id
+    viewer_protocol_policy = "redirect-to-https"
+    compress              = true
 
     forwarded_values {
       query_string = false
@@ -83,12 +84,7 @@ resource "aws_cloudfront_distribution" "app_ec2" {
         forward = "none"
       }
     }
-
-    viewer_protocol_policy = "redirect-to-https"
-    compress               = true
   }
-
-  aliases = ["${var.subdomain_name}.${var.domain_name}"]
 
   restrictions {
     geo_restriction {
@@ -99,6 +95,7 @@ resource "aws_cloudfront_distribution" "app_ec2" {
   viewer_certificate {
     acm_certificate_arn = aws_acm_certificate.this.arn
     ssl_support_method  = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = merge(
@@ -109,6 +106,10 @@ resource "aws_cloudfront_distribution" "app_ec2" {
   )
 }
 
+locals {
+  origin_id = "ALBOrigin"
+}
+
 
 # Criar um registro DNS no Route 53 com o subdomínio "live2" com um alias para a instância EC2.
 resource "aws_route53_record" "this" {
@@ -116,8 +117,8 @@ resource "aws_route53_record" "this" {
   name    = var.subdomain_name
   type    = "A"
   alias {
-    name                   = aws_cloudfront_distribution.app_ec2.domain_name
-    zone_id                = aws_cloudfront_distribution.app_ec2.hosted_zone_id
+    name                   = aws_cloudfront_distribution.app_lb.domain_name
+    zone_id                = aws_cloudfront_distribution.app_lb.hosted_zone_id
     evaluate_target_health = false
   }
 }
@@ -204,27 +205,6 @@ resource "aws_lb_listener" "this_http" {
     },
   )
 }
-
-
-resource "aws_lb_listener" "this_https" {
-  load_balancer_arn = aws_lb.this.arn
-  port              = 443
-  protocol          = "HTTPS"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.this.arn
-  }
-  certificate_arn = aws_acm_certificate_validation.this.certificate_arn
-
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.application_name}-${var.environment}-alb-listener-http"
-    },
-  )
-}
-
 
 # Criar um target group para a instância EC2.
 resource "aws_lb_target_group" "this" {
