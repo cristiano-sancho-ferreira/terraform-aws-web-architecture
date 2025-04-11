@@ -358,8 +358,14 @@ resource "aws_nat_gateway" "nat" {
 
 #################### VPC Endpoints ####################
 
+resource "random_string" "sg_suffix" {
+  length  = 3
+  special = false
+  upper   = false
+}
+
 resource "aws_security_group" "vpc_endpoint_secretmanager" {
-  name        = "${var.organization_name}-${var.environment}-secretmanager-sg"
+  name        = "${lower(var.organization_name)}-${var.environment}-secretmanager-sg-${random_string.sg_suffix.result}"
   description = "Allow HTTPS traffic for Secrets Manager VPC Endpoint"
   vpc_id      = aws_vpc.vpc.id
 
@@ -372,21 +378,12 @@ resource "aws_security_group" "vpc_endpoint_secretmanager" {
     cidr_blocks = [var.vpc_cidr] # Substitua pelo CIDR da sua sub-rede privada
   }
 
-  # Regras de Saída
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-vpc-secretmanager-sg"
     Env  = var.environment
   })
-
 }
+
 
 
 # Create a VPC Endpoint to secretsmanager service
@@ -416,15 +413,6 @@ resource "aws_security_group" "lambda_security_group" {
   name        = "${var.organization_name}-${var.environment}-lambda-sg"
   description = "Security group for Lambda functions"
   vpc_id      = aws_vpc.vpc.id
-
-  # Regras de Entrada 
-  # ingress {
-  #   description = "Allow HTTPS from private subnet"
-  #   from_port   = 443
-  #   to_port     = 443
-  #   protocol    = "tcp"
-  #   cidr_blocks = ["0.0.0.0/0"] # REFATORAR
-  # }
 
   # Regras de Entrada
   ingress {

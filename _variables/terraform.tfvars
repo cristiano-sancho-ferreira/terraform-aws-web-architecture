@@ -1,6 +1,6 @@
 region            = "us-east-1"
 application_name  = "App-Website"
-organization_name = "Sancho"
+organization_name = "sancho"
 environment       = "dev"
 domain_name       = "cursosancho.com"
 subdomain_name    = "app"

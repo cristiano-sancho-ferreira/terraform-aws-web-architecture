@@ -39,6 +39,7 @@ module "app_instance" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
+  depends_on = [ module.foundation ]
 }
 
 module "app_lb" {
@@ -51,6 +52,7 @@ module "app_lb" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
+  depends_on = [ module.foundation ]
 }
 
 
@@ -64,6 +66,7 @@ module "app_s3_cloudfront" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
+  depends_on = [ module.foundation ]
 }
 
 module "app_ec2_cloudfront" {
@@ -76,6 +79,7 @@ module "app_ec2_cloudfront" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
+  depends_on = [ module.foundation ]
 }
 
 module "app_ec2_lb_cloudfront" {
@@ -88,6 +92,7 @@ module "app_ec2_lb_cloudfront" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
+  depends_on = [ module.foundation ]
 }
 
 

@@ -41,10 +41,10 @@ module "network" {
 #   depends_on = [module.network]
 # }
 
-# module "s3" {
-#   source            = "./modules/s3"
-#   region            = var.region
-#   organization_name = var.organization_name
-#   environment       = var.environment
-#   common_tags       = var.common_tags
-# }
+module "s3" {
+  source            = "./modules/s3"
+  region            = var.region
+  organization_name = var.organization_name
+  environment       = var.environment
+  common_tags       = var.common_tags
+}
