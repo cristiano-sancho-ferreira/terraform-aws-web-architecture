@@ -2,17 +2,14 @@
 # Network
 #############################################################################
 
-# AWS Availability Zones data
-data "aws_availability_zones" "available" {}
-
 # Create the VPC
 resource "aws_vpc" "vpc" {
+
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-vpc"
-    Env  = var.environment
   })
 }
 
@@ -20,11 +17,12 @@ resource "aws_vpc" "vpc" {
 
 # Internet Gateway public Subnet
 resource "aws_internet_gateway" "igw" {
+
   vpc_id = aws_vpc.vpc.id
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-igw"
-    Env  = var.environment
+
   })
 }
 
@@ -33,6 +31,7 @@ resource "aws_internet_gateway" "igw" {
 
 # Create the public Subnet 
 resource "aws_subnet" "subnet-dmz-a" {
+
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.subnet_1_cidr
   availability_zone       = data.aws_availability_zones.available.names[0]
@@ -40,12 +39,13 @@ resource "aws_subnet" "subnet-dmz-a" {
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-pub-dmz-a"
-    Env  = var.environment
+
   })
 }
 
 # Create the public Subnet AZ2
 resource "aws_subnet" "subnet-dmz-b" {
+
   vpc_id                  = aws_vpc.vpc.id
   cidr_block              = var.subnet_2_cidr
   availability_zone       = data.aws_availability_zones.available.names[1]
@@ -53,13 +53,14 @@ resource "aws_subnet" "subnet-dmz-b" {
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-pub-dmz-b"
-    Env  = var.environment
+
   })
 
 }
 
 # Define the public route table
 resource "aws_route_table" "rt-pub" {
+
   vpc_id = aws_vpc.vpc.id
 
   # route to IGW
@@ -70,18 +71,20 @@ resource "aws_route_table" "rt-pub" {
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-rt-pub-dmz"
-    Env  = var.environment
+
   })
 }
 
 # Assign the route table to the public Subnet for IGW 
 resource "aws_route_table_association" "subnet-rt-association-igw-dmz-a" {
+
   subnet_id      = aws_subnet.subnet-dmz-a.id
   route_table_id = aws_route_table.rt-pub.id
 }
 
 # Assign the public route table to the redshift Subnet az2 for IGW 
 resource "aws_route_table_association" "subnet-rt-association-igw-dmz-b" {
+
   subnet_id      = aws_subnet.subnet-dmz-b.id
   route_table_id = aws_route_table.rt-pub.id
 }
@@ -89,15 +92,17 @@ resource "aws_route_table_association" "subnet-rt-association-igw-dmz-b" {
 
 # network acl public
 resource "aws_network_acl" "acl_pub" {
+
   vpc_id = aws_vpc.vpc.id
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-acl"
-    Env  = var.environment
+
   })
 }
 
 resource "aws_network_acl_rule" "ingress" {
+
   network_acl_id = aws_network_acl.acl_pub.id
   rule_number    = 100
   protocol       = -1
@@ -108,6 +113,7 @@ resource "aws_network_acl_rule" "ingress" {
 }
 
 resource "aws_network_acl_rule" "egress" {
+
   network_acl_id = aws_network_acl.acl_pub.id
   rule_number    = 100
   egress         = true
@@ -120,12 +126,14 @@ resource "aws_network_acl_rule" "egress" {
 
 # Associa a ACL de rede à primeira sub-rede
 resource "aws_network_acl_association" "association-dmz-a" {
+
   subnet_id      = aws_subnet.subnet-dmz-a.id
   network_acl_id = aws_network_acl.acl_pub.id
 }
 
 # Associa a ACL de rede à segunda sub-rede
 resource "aws_network_acl_association" "association-dmz-b" {
+
   subnet_id      = aws_subnet.subnet-dmz-b.id
   network_acl_id = aws_network_acl.acl_pub.id
 }
@@ -135,30 +143,33 @@ resource "aws_network_acl_association" "association-dmz-b" {
 
 # Create the private Subnet
 resource "aws_subnet" "subnet-app-a" {
+
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.subnet_3_cidr
   availability_zone = data.aws_availability_zones.available.names[0]
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-priv-app-a"
-    Env  = var.environment
+
   })
 }
 
 # Create the private Subnet
 resource "aws_subnet" "subnet-app-b" {
+
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.subnet_4_cidr
   availability_zone = data.aws_availability_zones.available.names[1]
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-priv-app-b"
-    Env  = var.environment
+
   })
 }
 
 # Define the private route table 
 resource "aws_route_table" "rt-app" {
+
   vpc_id = aws_vpc.vpc.id
 
   # route to NATGW
@@ -169,18 +180,20 @@ resource "aws_route_table" "rt-app" {
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-rt-priv-app"
-    Env  = var.environment
+
   })
 }
 
 # Assign the route table subnet private 
 resource "aws_route_table_association" "subnet-rt-association-app-a" {
+
   subnet_id      = aws_subnet.subnet-app-a.id
   route_table_id = aws_route_table.rt-app.id
 }
 
 # Assign the public route table to the redshift Subnet az2 for IGW 
 resource "aws_route_table_association" "subnet-rt-association-app-b" {
+
   subnet_id      = aws_subnet.subnet-app-b.id
   route_table_id = aws_route_table.rt-app.id
 }
@@ -189,30 +202,32 @@ resource "aws_route_table_association" "subnet-rt-association-app-b" {
 
 # Create the private Subnet
 resource "aws_subnet" "subnet-db-a" {
+
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.subnet_5_cidr
   availability_zone = data.aws_availability_zones.available.names[0]
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-priv-db-a"
-    Env  = var.environment
+
   })
 }
 
 # Create the private Subnet
 resource "aws_subnet" "subnet-db-b" {
+
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.subnet_6_cidr
   availability_zone = data.aws_availability_zones.available.names[1]
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-priv-db-b"
-    Env  = var.environment
   })
 }
 
 # Define the private route table 
 resource "aws_route_table" "rt-db" {
+
   vpc_id = aws_vpc.vpc.id
 
   # route to NATGW
@@ -223,18 +238,19 @@ resource "aws_route_table" "rt-db" {
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-rt-priv-db"
-    Env  = var.environment
   })
 }
 
 # Assign the route table subnet private 
 resource "aws_route_table_association" "subnet-rt-association-db-a" {
+
   subnet_id      = aws_subnet.subnet-db-a.id
   route_table_id = aws_route_table.rt-db.id
 }
 
 # Assign the public route table to the redshift Subnet az2 for IGW 
 resource "aws_route_table_association" "subnet-rt-association-db-b" {
+
   subnet_id      = aws_subnet.subnet-db-b.id
   route_table_id = aws_route_table.rt-db.id
 }
@@ -244,30 +260,43 @@ resource "aws_route_table_association" "subnet-rt-association-db-b" {
 
 # Create the private Subnet
 resource "aws_subnet" "subnet-lambda-a" {
+
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.subnet_7_cidr
   availability_zone = data.aws_availability_zones.available.names[0]
 
+  lifecycle {
+    ignore_changes = [map_customer_owned_ip_on_launch, enable_lni_at_device_index, tags] # Ignora mudanças em certos atributos
+  }
+
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-priv-lambda-a"
-    Env  = var.environment
   })
+
 }
 
 # Create the private Subnet
 resource "aws_subnet" "subnet-lambda-b" {
+
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.subnet_8_cidr
   availability_zone = data.aws_availability_zones.available.names[1]
 
+  lifecycle {
+    # prevent_destroy = true    # Impede que o recurso seja destruído
+    ignore_changes = [map_customer_owned_ip_on_launch, enable_lni_at_device_index, tags] # Ignora mudanças em certos atributos
+  }
+
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-priv-lambda-b"
-    Env  = var.environment
   })
+
+
 }
 
 # Define the private route table 
 resource "aws_route_table" "rt-lambda" {
+
   vpc_id = aws_vpc.vpc.id
 
   # route to NATGW
@@ -285,41 +314,43 @@ resource "aws_route_table" "rt-lambda" {
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-rt-priv-lambda"
-    Env  = var.environment
+
   })
 }
 
 # Assign the route table subnet private 
 resource "aws_route_table_association" "subnet-rt-association-lambda-a" {
+
   subnet_id      = aws_subnet.subnet-lambda-a.id
   route_table_id = aws_route_table.rt-lambda.id
 }
 
 # Assign the public route table to the redshift Subnet az2 for IGW 
 resource "aws_route_table_association" "subnet-rt-association-lambda-b" {
+
   subnet_id      = aws_subnet.subnet-lambda-b.id
   route_table_id = aws_route_table.rt-lambda.id
 }
 
 # Elastic IP para o NAT Gateway
 resource "aws_eip" "nat" {
+
   domain = "vpc"
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-nat-eip"
-    Env  = var.environment
   })
 
 }
 
 # Criando o NAT Gateway
 resource "aws_nat_gateway" "nat" {
+
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.subnet-dmz-a.id
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-nat-gateway"
-    Env  = var.environment
   })
   depends_on = [aws_internet_gateway.igw, aws_subnet.subnet-dmz-a]
 }
@@ -358,14 +389,9 @@ resource "aws_nat_gateway" "nat" {
 
 #################### VPC Endpoints ####################
 
-resource "random_string" "sg_suffix" {
-  length  = 3
-  special = false
-  upper   = false
-}
-
 resource "aws_security_group" "vpc_endpoint_secretmanager" {
-  name        = "${lower(var.organization_name)}-${var.environment}-secretmanager-sg-${random_string.sg_suffix.result}"
+
+  name        = "${var.organization_name}-${var.environment}-secretmanager-sg"
   description = "Allow HTTPS traffic for Secrets Manager VPC Endpoint"
   vpc_id      = aws_vpc.vpc.id
 
@@ -378,41 +404,63 @@ resource "aws_security_group" "vpc_endpoint_secretmanager" {
     cidr_blocks = [var.vpc_cidr] # Substitua pelo CIDR da sua sub-rede privada
   }
 
+  # Regras de Saída
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-vpc-secretmanager-sg"
-    Env  = var.environment
   })
+
+
+
 }
 
 
+# # Create a VPC Endpoint to secretsmanager service
+# resource "aws_vpc_endpoint" "secretmanager" {
 
-# Create a VPC Endpoint to secretsmanager service
-resource "aws_vpc_endpoint" "secretmanager" {
-  vpc_id              = aws_vpc.vpc.id
-  service_name        = "com.amazonaws.${var.region}.secretsmanager"
-  private_dns_enabled = true
-  vpc_endpoint_type   = "Interface"
+#   vpc_id              = aws_vpc.vpc.id
+#   service_name        = "com.amazonaws.${var.region}.secretsmanager"
+#   private_dns_enabled = true
+#   vpc_endpoint_type   = "Interface"
 
-  security_group_ids = [
-    aws_security_group.vpc_endpoint_secretmanager.id
-  ]
+#   security_group_ids = [
+#     aws_security_group.vpc_endpoint_secretmanager.id
+#   ]
 
-  subnet_ids = [
-    aws_subnet.subnet-lambda-a.id,
-    aws_subnet.subnet-lambda-b.id
-  ]
+#   subnet_ids = [
+#     aws_subnet.subnet-lambda-a.id,
+#     aws_subnet.subnet-lambda-b.id
+#   ]
 
-  tags = merge(var.common_tags, {
-    Name = "${var.organization_name}-${var.environment}-secretmanager-endpoint"
-    Env  = var.environment
-  })
-}
+#   tags = merge(var.common_tags, {
+#     Name = "${var.organization_name}-${var.environment}-secretmanager-endpoint"
+#   })
+
+#   depends_on = [ aws_subnet.subnet-lambda-a, aws_subnet.subnet-lambda-b, aws_security_group.vpc_endpoint_secretmanager ]
+# }
 
 
 resource "aws_security_group" "lambda_security_group" {
+
   name        = "${var.organization_name}-${var.environment}-lambda-sg"
   description = "Security group for Lambda functions"
   vpc_id      = aws_vpc.vpc.id
+
+  # Regras de Entrada 
+  # ingress {
+  #   description = "Allow HTTPS from private subnet"
+  #   from_port   = 443
+  #   to_port     = 443
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"] # REFATORAR
+  # }
 
   # Regras de Entrada
   ingress {
@@ -443,8 +491,12 @@ resource "aws_security_group" "lambda_security_group" {
 
   tags = merge(var.common_tags, {
     Name = "${var.organization_name}-${var.environment}-vpc-lambda-sg"
-    Env  = var.environment
+
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 
@@ -456,7 +508,7 @@ resource "aws_security_group" "lambda_security_group" {
 
 #   tags = merge(var.common_tags, {
 #     Name = "${var.organization_name}-${var.environment}-vpc-peering-virginia-oregon"
-#     Env  = var.environment
+#     
 #   })
 # }
 
