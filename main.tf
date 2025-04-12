@@ -8,7 +8,7 @@
 #################
 
 locals {
-  module_name = "app_ec2_lb_cloudfront333" # Change this to the desired module name
+  module_name = "app_ec2_lb_cloudfront" # Change this to the desired module name
 }
 
 module "foundation" {
