@@ -389,37 +389,33 @@ resource "aws_nat_gateway" "nat" {
 
 #################### VPC Endpoints ####################
 
-resource "aws_security_group" "vpc_endpoint_secretmanager" {
+# resource "aws_security_group" "vpc_endpoint_secretmanager" {
+#   name        = "${var.organization_name}-${var.environment}-secretmanager-sg"
+#   description = "Allow HTTPS traffic for Secrets Manager VPC Endpoint"
+#   vpc_id      = aws_vpc.vpc.id
 
-  name        = "${var.organization_name}-${var.environment}-secretmanager-sg"
-  description = "Allow HTTPS traffic for Secrets Manager VPC Endpoint"
-  vpc_id      = aws_vpc.vpc.id
+#   # Regras de Entrada
+#   ingress {
+#     description = "Allow HTTPS from private subnet"
+#     from_port   = 443
+#     to_port     = 443
+#     protocol    = "tcp"
+#     cidr_blocks = [var.vpc_cidr] # Substitua pelo CIDR da sua sub-rede privada
+#   }
 
-  # Regras de Entrada
-  ingress {
-    description = "Allow HTTPS from private subnet"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr] # Substitua pelo CIDR da sua sub-rede privada
-  }
+#   # Regras de Saída
+#   egress {
+#     description = "Allow all outbound traffic"
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  # Regras de Saída
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(var.common_tags, {
-    Name = "${var.organization_name}-${var.environment}-vpc-secretmanager-sg"
-  })
-
-
-
-}
+#   tags = merge(var.common_tags, {
+#     Name = "${var.organization_name}-${var.environment}-vpc-secretmanager-sg"
+#   })
+# }
 
 
 # # Create a VPC Endpoint to secretsmanager service
@@ -447,57 +443,56 @@ resource "aws_security_group" "vpc_endpoint_secretmanager" {
 # }
 
 
-resource "aws_security_group" "lambda_security_group" {
+# resource "aws_security_group" "lambda_security_group" {
+#   name        = "${var.organization_name}-${var.environment}-lambda-sg"
+#   description = "Security group for Lambda functions"
+#   vpc_id      = aws_vpc.vpc.id
 
-  name        = "${var.organization_name}-${var.environment}-lambda-sg"
-  description = "Security group for Lambda functions"
-  vpc_id      = aws_vpc.vpc.id
+#   # Regras de Entrada 
+#   # ingress {
+#   #   description = "Allow HTTPS from private subnet"
+#   #   from_port   = 443
+#   #   to_port     = 443
+#   #   protocol    = "tcp"
+#   #   cidr_blocks = ["0.0.0.0/0"] # REFATORAR
+#   # }
 
-  # Regras de Entrada 
-  # ingress {
-  #   description = "Allow HTTPS from private subnet"
-  #   from_port   = 443
-  #   to_port     = 443
-  #   protocol    = "tcp"
-  #   cidr_blocks = ["0.0.0.0/0"] # REFATORAR
-  # }
+#   # Regras de Entrada
+#   ingress {
+#     description = "Allow Redshift from private subnet"
+#     from_port   = 5439
+#     to_port     = 5439
+#     protocol    = "tcp"
+#     cidr_blocks = [var.vpc_cidr]
+#   }
 
-  # Regras de Entrada
-  ingress {
-    description = "Allow Redshift from private subnet"
-    from_port   = 5439
-    to_port     = 5439
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-  }
+#   # Regras de Entrada
+#   ingress {
+#     description     = "Allow HTTPS from private subnet"
+#     from_port       = 443
+#     to_port         = 443
+#     protocol        = "tcp"
+#     security_groups = [aws_security_group.vpc_endpoint_secretmanager.id]
+#   }
 
-  # Regras de Entrada
-  ingress {
-    description     = "Allow HTTPS from private subnet"
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.vpc_endpoint_secretmanager.id]
-  }
+#   # Regras de Saída
+#   egress {
+#     description = "Allow all outbound traffic"
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
 
-  # Regras de Saída
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   tags = merge(var.common_tags, {
+#     Name = "${var.organization_name}-${var.environment}-vpc-lambda-sg"
 
-  tags = merge(var.common_tags, {
-    Name = "${var.organization_name}-${var.environment}-vpc-lambda-sg"
+#   })
 
-  })
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
 
 
 # REFATORAR
