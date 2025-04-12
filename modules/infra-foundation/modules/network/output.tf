@@ -6,9 +6,9 @@ output "subnet_lambda_ids" {
   description = "IDs das subnets privadas usadas pelo Lambda"
 }
 
-output "lambda_security_group_id" {
-  value = aws_security_group.lambda_security_group.id
-}
+# output "lambda_security_group_id" {
+#   value = aws_security_group.lambda_security_group.id
+# }
 
 output "vpc_id" {
   value = aws_vpc.vpc.id
