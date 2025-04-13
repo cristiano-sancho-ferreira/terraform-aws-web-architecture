@@ -15,13 +15,16 @@ data "aws_ami" "latest" {
 
 
 data "aws_vpc" "default" {
-  default = true
+  filter {
+    name   = "tag:Name"
+    values = ["${var.organization_name}-${var.environment}-vpc"]
+  }
 }
 
 data "aws_subnets" "default" {
   filter {
-    name   = "default-for-az"
-    values = ["true"]
+    name   = "tag:Name"
+    values = ["${var.organization_name}-${var.environment}-pub-dmz-*"]
   }
 }
 

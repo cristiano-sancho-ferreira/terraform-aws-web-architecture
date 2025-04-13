@@ -18,6 +18,8 @@ resource "aws_instance" "this" {
               EOF
 
   vpc_security_group_ids = [aws_security_group.this.id]
+  subnet_id             = data.aws_subnets.default.ids[0] # Substitua pelo seu ID de sub-rede
+  associate_public_ip_address = true # Atribuir um IP público à instância EC2
 
   tags = merge(
     var.common_tags,
@@ -30,6 +32,7 @@ resource "aws_instance" "this" {
 # Criar um grupo de segurança para a instância EC2.
 resource "aws_security_group" "this" {
   name = "${var.application_name}-${var.environment}-security-group"
+  vpc_id = data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
@@ -40,14 +43,8 @@ resource "aws_security_group" "this" {
   ingress {
     from_port   = 443
     to_port     = 443
-    protocol    = "tcp"
+    protocol    = "tcp"   
     cidr_blocks = ["0.0.0.0/0"] # Permitir acesso HTTPS de qualquer lugar
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 

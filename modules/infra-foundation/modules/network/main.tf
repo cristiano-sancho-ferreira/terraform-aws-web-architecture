@@ -126,14 +126,12 @@ resource "aws_network_acl_rule" "egress" {
 
 # Associa a ACL de rede à primeira sub-rede
 resource "aws_network_acl_association" "association-dmz-a" {
-
   subnet_id      = aws_subnet.subnet-dmz-a.id
   network_acl_id = aws_network_acl.acl_pub.id
 }
 
 # Associa a ACL de rede à segunda sub-rede
 resource "aws_network_acl_association" "association-dmz-b" {
-
   subnet_id      = aws_subnet.subnet-dmz-b.id
   network_acl_id = aws_network_acl.acl_pub.id
 }
