@@ -18,8 +18,6 @@ resource "aws_instance" "this" {
               EOF
 
   vpc_security_group_ids = [aws_security_group.this.id]
-  subnet_id             = data.aws_subnets.default.ids[0] # Substitua pelo seu ID de sub-rede
-  associate_public_ip_address = true # Atribuir um IP público à instância EC2
 
   tags = merge(
     var.common_tags,
@@ -32,7 +30,6 @@ resource "aws_instance" "this" {
 # Criar um grupo de segurança para a instância EC2.
 resource "aws_security_group" "this" {
   name = "${var.application_name}-${var.environment}-security-group"
-  vpc_id = data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
@@ -43,25 +40,22 @@ resource "aws_security_group" "this" {
   ingress {
     from_port   = 443
     to_port     = 443
-    protocol    = "tcp"   
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] # Permitir acesso HTTPS de qualquer lugar
   }
-  lifecycle {
-    create_before_destroy = true
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 
-resource "aws_cloudfront_distribution" "app_lb" {
-  enabled             = true
-  is_ipv6_enabled     = true
-  default_root_object = "index.html"
-  web_acl_id         = aws_wafv2_web_acl.this.arn
-  aliases            = ["${var.subdomain_name}.${var.domain_name}"]
-
+resource "aws_cloudfront_distribution" "app_ec2" {
   origin {
-    domain_name = aws_lb.this.dns_name
-    origin_id   = local.origin_id
+    domain_name = aws_instance.this.public_dns
+    origin_id   = "EC2Origin"
 
     custom_origin_config {
       http_port              = 80
@@ -71,12 +65,17 @@ resource "aws_cloudfront_distribution" "app_lb" {
     }
   }
 
+  # Habilitar o WAF
+  web_acl_id = aws_wafv2_web_acl.this.arn
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = "index.html"
+
   default_cache_behavior {
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = local.origin_id
-    viewer_protocol_policy = "redirect-to-https"
-    compress              = true
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "EC2Origin"
 
     forwarded_values {
       query_string = false
@@ -84,7 +83,12 @@ resource "aws_cloudfront_distribution" "app_lb" {
         forward = "none"
       }
     }
+
+    viewer_protocol_policy = "redirect-to-https"
+    compress               = true
   }
+
+  aliases = ["${var.subdomain_name}.${var.domain_name}"]
 
   restrictions {
     geo_restriction {
@@ -95,7 +99,6 @@ resource "aws_cloudfront_distribution" "app_lb" {
   viewer_certificate {
     acm_certificate_arn = aws_acm_certificate.this.arn
     ssl_support_method  = "sni-only"
-    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = merge(
@@ -106,10 +109,6 @@ resource "aws_cloudfront_distribution" "app_lb" {
   )
 }
 
-locals {
-  origin_id = "ALBOrigin"
-}
-
 
 # Criar um registro DNS no Route 53 com o subdomínio "live2" com um alias para a instância EC2.
 resource "aws_route53_record" "this" {
@@ -117,8 +116,8 @@ resource "aws_route53_record" "this" {
   name    = var.subdomain_name
   type    = "A"
   alias {
-    name                   = aws_cloudfront_distribution.app_lb.domain_name
-    zone_id                = aws_cloudfront_distribution.app_lb.hosted_zone_id
+    name                   = aws_cloudfront_distribution.app_ec2.domain_name
+    zone_id                = aws_cloudfront_distribution.app_ec2.hosted_zone_id
     evaluate_target_health = false
   }
 }
@@ -169,71 +168,6 @@ resource "aws_wafv2_web_acl" "this" {
     metric_name               = "${var.application_name}-${var.environment}-metric"
     sampled_requests_enabled  = true
   }
-}
-
-
-
-# Criar um Load Balancer do tipo Application Load Balancer (ALB) na VPC default e associar acm-certificate.
-# O Load Balancer será acessível publicamente e terá um listener na porta 443 (HTTPS).  
-# O listener HTTP será redirecionado para o listener HTTPS
-resource "aws_lb" "this" {
-  name               = "${var.application_name}-${var.environment}-alb"
-  load_balancer_type = "application"
-  subnets            = data.aws_subnets.default.ids
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.application_name}-${var.environment}-alb"
-    },
-  )
-}
-
-resource "aws_lb_listener" "this_http" {
-  load_balancer_arn = aws_lb.this.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.this.arn
-  }
-
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.application_name}-${var.environment}-alb-listener-http"
-    },
-  )
-}
-
-# Criar um target group para a instância EC2.
-resource "aws_lb_target_group" "this" {
-  name     = "${var.application_name}-${var.environment}-target-group"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = data.aws_vpc.default.id
-  health_check {
-    path                = "/"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    matcher             = "200-299"
-  }
-
-  tags = merge(
-    var.common_tags,
-    {
-      Name = "${var.application_name}-${var.environment}-target-group"
-    },
-  )
-}
-
-# Attach the EC2 instance to the target group
-resource "aws_lb_target_group_attachment" "this" {
-  target_group_arn = aws_lb_target_group.this.arn
-  target_id        = aws_instance.this.id
-  port             = 80
 }
 
 

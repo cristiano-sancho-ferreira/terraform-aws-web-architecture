@@ -8,26 +8,22 @@
 #################
 
 locals {
-  module_name = "app_ec2_lb_cloudfront" # Change this to the desired module name
+  module_name = "app_lb2" # Change this to the desired module name
 }
 
-module "foundation" {
-  source            = "./modules/infra-foundation"
+
+module "app_acm" {
+  source            = "./modules/app_acm"
   region            = var.region
   application_name  = var.application_name
   organization_name = var.organization_name
   environment       = var.environment
   common_tags       = var.common_tags
-  vpc_cidr          = var.vpc_cidr
-  subnet_1_cidr     = var.subnet_1_cidr
-  subnet_2_cidr     = var.subnet_2_cidr
-  subnet_3_cidr     = var.subnet_3_cidr
-  subnet_4_cidr     = var.subnet_4_cidr
-  subnet_5_cidr     = var.subnet_5_cidr
-  subnet_6_cidr     = var.subnet_6_cidr
-  subnet_7_cidr     = var.subnet_7_cidr
-  subnet_8_cidr     = var.subnet_8_cidr
+  domain_name       = var.domain_name
+  subdomain_name    = var.subdomain_name
+
 }
+
 
 module "app_instance" {
   count             = local.module_name == "app_instance" ? 1 : 0
@@ -39,12 +35,12 @@ module "app_instance" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
-  depends_on = [ module.foundation ]
 }
+
 
 module "app_lb" {
   count             = local.module_name == "app_lb" ? 1 : 0
-  source            = "./modules/app_ec2_lb"
+  source            = "./modules/app_ec2_lb_tg"
   region            = var.region
   application_name  = var.application_name
   organization_name = var.organization_name
@@ -52,8 +48,9 @@ module "app_lb" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
-  depends_on = [ module.foundation ]
+  depends_on = [ module.app_acm ]
 }
+
 
 
 module "app_s3_cloudfront" {
@@ -66,7 +63,6 @@ module "app_s3_cloudfront" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
-  depends_on = [ module.foundation ]
 }
 
 module "app_ec2_cloudfront" {
@@ -79,7 +75,6 @@ module "app_ec2_cloudfront" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
-  depends_on = [ module.foundation ]
 }
 
 module "app_ec2_lb_cloudfront" {
@@ -92,7 +87,6 @@ module "app_ec2_lb_cloudfront" {
   common_tags       = var.common_tags
   domain_name       = var.domain_name
   subdomain_name    = var.subdomain_name
-  depends_on = [ module.foundation ]
 }
 
 
